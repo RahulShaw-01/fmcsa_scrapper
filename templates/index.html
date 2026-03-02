@@ -3,27 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lucas Stealth Scraper v2.0</title>
+    <title>FMCSA Lead Generator</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         body { background-color: #f4f7f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .navbar { background: #2c3e50; color: white; padding: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .main-card { border: none; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); margin-top: -50px; }
+        .header-section { background: #2c3e50; height: 180px; padding-top: 40px; color: white; text-align: center; }
+        .main-card { border: none; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); margin-top: -50px; background: white; }
         .btn-primary { background: #3498db; border: none; padding: 10px 25px; border-radius: 8px; transition: 0.3s; }
         .btn-primary:hover { background: #2980b9; transform: translateY(-2px); }
         .btn-success { background: #27ae60; border: none; padding: 10px 25px; border-radius: 8px; }
         .table thead { background: #34495e; color: white; }
         .loader { display: none; margin: 20px auto; border: 5px solid #f3f3f3; border-top: 5px solid #3498db; border-radius: 50%; width: 50px; height: 50px; animation: spin 2s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .header-section { background: #2c3e50; height: 200px; padding-top: 40px; color: white; text-align: center; }
+        footer { margin-top: 50px; padding-bottom: 30px; color: #7f8c8d; text-align: center; }
     </style>
 </head>
 <body>
 
 <div class="header-section">
     <h2><i class="fas fa-truck-moving"></i> FMCSA Lead Generator</h2>
-    <p>Get Real-time Carrier Data with Stealth Mode</p>
+    <p>Get Real-time Carrier Data</p>
 </div>
 
 <div class="container mb-5">
@@ -32,9 +32,8 @@
             <div class="card main-card p-4">
                 <form method="POST" id="scraperForm">
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Enter MC Numbers (Comma or Space separated):</label>
-                        <textarea class="form-control" name="mcs" rows="4" placeholder="Example: 123456, 654321, 112233" required>{{ mc_raw }}</textarea>
-                        <div class="form-text text-muted mt-2">Note: For Free Tier, try 5-10 MCs at a time to avoid timeout.</div>
+                        <label class="form-label fw-bold">Enter MC Numbers:</label>
+                        <textarea class="form-control" name="mcs" rows="4" placeholder="Enter MC numbers (e.g. 123456, 789012)" required>{{ mc_raw }}</textarea>
                     </div>
                     
                     <div class="d-flex gap-2">
@@ -53,7 +52,7 @@
 
                 {% if results %}
                 <div class="mt-5">
-                    <h4 class="mb-3">Scraped Results ({{ results|length }})</h4>
+                    <h4 class="mb-3">Results ({{ results|length }})</h4>
                     <div class="table-responsive">
                         <table class="table table-hover align-middle">
                             <thead>
@@ -79,6 +78,12 @@
                 </div>
                 {% endif %}
             </div>
+
+            <footer>
+                <hr class="w-25 mx-auto">
+                <p>&copy; 2026 <strong>Rahul Shaw</strong>. All Rights Reserved.</p>
+            </footer>
+
         </div>
     </div>
 </div>
