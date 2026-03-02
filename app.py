@@ -9,7 +9,6 @@ from io import BytesIO
 app = Flask(__name__)
 
 def get_data(mc):
-    # Website ko browser jaisa dikhane ke liye scraper session
     scraper = cloudscraper.create_scraper(
         browser={
             'browser': 'chrome',
@@ -21,17 +20,14 @@ def get_data(mc):
     url = f"https://safer.fmcsa.dot.gov/query.asp?searchtype=ANY&query_type=queryCarrierSnapshot&query_param=MC_MX&query_string={mc}"
     
     try:
-        # 3 second ka delay taaki website ko gussa na aaye
-        time.sleep(3) 
-        response = scraper.get(url, timeout=25)
+        time.sleep(1.5) 
+        response = scraper.get(url, timeout=20)
         
-        # Check if we actually got the page
         if response.status_code != 200 or "Company Snapshot" not in response.text:
-            return {"MC": mc, "Name": "BLOCKED BY SITE", "Phone": "N/A", "Physical_Address": "N/A"}
+            return {"MC": mc, "Name": "NOT FOUND/BLOCKED", "Phone": "N/A", "Physical_Address": "N/A"}
 
         soup = BeautifulSoup(response.content, 'html.parser')
         
-        # ID-based extraction (Screenshots 57 & 58)
         phys_td = soup.find('td', id='physicaladdressvalue')
         p_addr = phys_td.get_text(separator=" ", strip=True) if phys_td else "N/A"
         
@@ -47,8 +43,8 @@ def get_data(mc):
 
         return {"MC": mc, "Name": name, "Phone": phone, "Physical_Address": p_addr}
     
-    except Exception as e:
-        return {"MC": mc, "Name": "Error/Timeout", "Phone": "N/A", "Physical_Address": "N/A"}
+    except Exception:
+        return {"MC": mc, "Name": "Timeout Error", "Phone": "N/A", "Physical_Address": "N/A"}
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -57,15 +53,17 @@ def index():
     if request.method == 'POST':
         mc_raw = request.form.get('mcs')
         mc_list = re.findall(r'\d+', mc_raw)
-        results = [get_data(mc) for mc in mc_list]
         
-        if 'download' in request.form and results:
+        if 'download' in request.form:
+            results = [get_data(mc) for mc in mc_list]
             df = pd.DataFrame(results)
             output = BytesIO()
             with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                 df.to_excel(writer, index=False)
             output.seek(0)
             return send_file(output, download_name="Lucas_Leads.xlsx", as_attachment=True)
+        
+        results = [get_data(mc) for mc in mc_list]
             
     return render_template('index.html', results=results, mc_raw=mc_raw)
 
