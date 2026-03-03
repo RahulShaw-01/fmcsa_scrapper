@@ -8,9 +8,6 @@ from io import BytesIO
 
 app = Flask(__name__)
 
-# Indian Surnames
-INDIAN_NAMES = ["SINGH", "KAUR", "PATEL", "SHARMA", "GILL", "SANDHU", "SIDHU", "DHILLON", "GREWAL", "DOSANJH", "CHAHAL", "BRAR", "KHAN", "MALHOTRA", "SHER", "BHARAT", "DESI", "KHALSA", "PUNJAB", "GUJARAT", "HARYANA"]
-
 # US State to Timezone Mapping
 TIMEZONE_MAP = {
     'ME': 'EST', 'VT': 'EST', 'NH': 'EST', 'MA': 'EST', 'RI': 'EST', 'CT': 'EST', 'NY': 'EST', 'NJ': 'EST', 'PA': 'EST', 'DE': 'EST', 'MD': 'EST', 'DC': 'EST', 'VA': 'EST', 'WV': 'EST', 'NC': 'EST', 'SC': 'EST', 'GA': 'EST', 'FL': 'EST', 'OH': 'EST', 'MI': 'EST', 'IN': 'EST', 'KY': 'EST',
@@ -27,38 +24,41 @@ def get_data(mc):
         time.sleep(1.2)
         response = scraper.get(url, timeout=20)
         if response.status_code != 200 or "Company Snapshot" not in response.text:
-            return {"MC": mc, "Name": "NOT FOUND", "Phone": "N/A", "Address": "N/A", "Type": "Standard", "Timeline": "N/A"}
+            return {"MC": mc, "Name": "NOT FOUND", "Phone": "N/A", "Address": "N/A", "Timeline": "N/A"}
 
         soup = BeautifulSoup(response.content, 'html.parser')
         
-        # Name & Indian Filter
+        # Sirf Legal Name nikalna (No DBA)
         name_label = soup.find(string=re.compile("Legal Name", re.I))
-        name = name_label.find_next('td').get_text(strip=True) if name_label else "N/A"
-        is_indian = any(surname in name.upper() for surname in INDIAN_NAMES)
-        lead_type = "🇮🇳 Indian" if is_indian else "Standard"
+        legal_name = name_label.find_next('td').get_text(strip=True) if name_label else "N/A"
 
         # Address & Timeline Logic
         phys_td = soup.find('td', id='physicaladdressvalue')
         p_addr = phys_td.get_text(separator=" ", strip=True) if phys_td else "N/A"
         
-        # Extracting State (Last 2-3 words are usually State and Zip)
         timeline = "N/A"
-        state_match = re.search(r'\b([A-Z]{2})\b\s+\d{5}', p_addr) # Finds "NY 10001" or "CA 90001"
+        state_match = re.search(r'\b([A-Z]{2})\b\s+\d{5}', p_addr)
         if state_match:
             state_code = state_match.group(1)
             timeline = TIMEZONE_MAP.get(state_code, "Check State")
 
-        # Phone
+        # Phone Extraction
         phone = "N/A"
         for td in soup.find_all('td', class_='queryfield'):
             txt = td.get_text(strip=True)
             if re.search(r'\(\d{3}\)\s\d{3}-\d{4}', txt):
-                phone = re.sub(r'\D', '', txt)
+                phone = re.sub(r'\D', '', txt) 
                 break
 
-        return {"MC": mc, "Name": name, "Phone": phone, "Address": p_addr, "Type": lead_type, "Timeline": timeline}
+        return {
+            "MC": mc, 
+            "Name": legal_name, 
+            "Phone": phone, 
+            "Address": p_addr, 
+            "Timeline": timeline
+        }
     except Exception:
-        return {"MC": mc, "Name": "Error", "Phone": "N/A", "Address": "N/A", "Type": "Standard", "Timeline": "N/A"}
+        return {"MC": mc, "Name": "Error", "Phone": "N/A", "Address": "N/A", "Timeline": "N/A"}
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -68,14 +68,19 @@ def index():
         mc_raw = request.form.get('mcs')
         mc_list = re.findall(r'\d+', mc_raw)
         
+        # Results Scraping
+        results = [get_data(mc) for mc in mc_list]
+
+        # Download Logic
         if 'download' in request.form:
-            results = [get_data(mc) for mc in mc_list]
             df = pd.DataFrame(results)
             output = BytesIO()
             with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                 df.to_excel(writer, index=False)
             output.seek(0)
-            return send_file(output, download_name="Carrier_Timeline_Report.xlsx", as_attachment=True)
+            return send_file(output, download_name="FMCSA_Leads.xlsx", as_attachment=True)
         
-        results = [get_data(mc) for mc in mc_list]
     return render_template('index.html', results=results, mc_raw=mc_raw)
+
+if __name__ == '__main__':
+    app.run(debug=True)
